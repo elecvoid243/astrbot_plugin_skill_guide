@@ -43,7 +43,7 @@ def build_active_payload(skills: list[Any], persona: Any | None) -> dict:
         "skills": [
             {
                 "name": skill.name,
-                "description": skill.description,
+                "description": skill.description or "",
                 "path": skill.path,
                 "source_type": skill.source_type,
             }
@@ -82,6 +82,8 @@ def _wrap(handler: Callable, plugin: Any) -> Callable:
         body: dict = {}
         if is_post and (accepts & {"umo", "body"}):
             body = (await web.request.json(default={})) or {}
+            if not isinstance(body, dict):
+                body = {}
 
         call_kwargs: dict[str, Any] = {}
         if "umo" in accepts:

@@ -52,10 +52,10 @@ class SkillGuidePlugin(star.Star):
             event: AstrBot 消息事件（取 unified_msg_origin）。
             req: 即将发送给 Provider 的请求对象，直接修改其字段。
         """
-        umo = event.unified_msg_origin
-        if not self._state.peek(umo):
-            return
         try:
+            umo = event.unified_msg_origin
+            if not self._state.peek(umo):
+                return
             skills, _ = await resolve_active_skills(self, umo)
             by_name = {skill.name: skill for skill in skills}
             inject_pending(self._state, umo, req, skills_by_name=by_name)

@@ -20,11 +20,11 @@ def build_guidance(skill: Any) -> str:
     Returns:
         English guidance paragraph instructing the LLM to use the skill.
     """
-    name = str(getattr(skill, "name", "") or "")
+    name = str(getattr(skill, "name", "") or "").strip() or "<unnamed_skill>"
     description = str(getattr(skill, "description", "") or "").strip()
     if not description:
         description = "No description"
-    path = str(getattr(skill, "path", "") or "") or "<skill_path>"
+    path = str(getattr(skill, "path", "") or "").strip() or "<skill_path>"
     return (
         "[User skill request]\n"
         "The user explicitly asks you to use the following skill for this request:\n"

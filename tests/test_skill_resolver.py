@@ -80,6 +80,22 @@ def test_filter_plugin_skills_reserved_plugin_always_passes() -> None:
     assert [s.name for s in result] == ["p1"]
 
 
+def test_filter_plugin_skills_plugin_set_none_allows_all() -> None:
+    skills = [_skill("p1", "plugin", "plugin_a"), _skill("p2", "plugin", "plugin_b")]
+    registry = [
+        _plugin_meta("plugin_a", name="plugin_a"),
+        _plugin_meta("plugin_b", name="plugin_b"),
+    ]
+    assert filter_plugin_skills(skills, None, registry) == skills
+
+
+def test_filter_plugin_skills_plugin_name_none_dropped_under_named_set() -> None:
+    skills = [_skill("p1", "plugin", "plugin_a")]
+    registry = [_plugin_meta("plugin_a", name=None)]
+    result = filter_plugin_skills(skills, ["plugin_a"], registry)
+    assert result == []
+
+
 class _FakeConversationManager:
     def __init__(self, persona_id: str | None) -> None:
         self._persona_id = persona_id
@@ -94,8 +110,10 @@ class _FakeConversationManager:
 class _FakePersonaManager:
     def __init__(self, persona: dict | None) -> None:
         self._persona = persona
+        self.last_kwargs: dict | None = None
 
     async def resolve_selected_persona(self, **kwargs):
+        self.last_kwargs = kwargs
         return (None, self._persona, None, False)
 
 
@@ -167,3 +185,6 @@ async def test_resolve_glue_conversation_persona_id_passed() -> None:
     )
     # The glue must have resolved conversation persona -> persona whitelist applied
     assert [s.name for s in result] == ["a"]
+    # And the conversation persona id must actually reach the persona manager
+    assert ctx.persona_manager.last_kwargs is not None
+    assert ctx.persona_manager.last_kwargs["conversation_persona_id"] == "conv-persona"
