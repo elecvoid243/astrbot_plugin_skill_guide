@@ -6,24 +6,34 @@ from types import SimpleNamespace
 
 import pytest
 
-from core.skill_resolver import filter_by_persona, filter_plugin_skills, resolve_active_skills
+from core.skill_resolver import (
+    filter_by_persona,
+    filter_plugin_skills,
+    resolve_active_skills,
+)
 
 
-def _skill(name: str, source_type: str = "local", plugin_name: str = "") -> SimpleNamespace:
+def _skill(
+    name: str, source_type: str = "local", plugin_name: str = ""
+) -> SimpleNamespace:
     return SimpleNamespace(name=name, source_type=source_type, plugin_name=plugin_name)
 
 
-def _plugin_meta(root_dir: str, *, activated: bool = True, reserved: bool = False, name: str = "") -> SimpleNamespace:
-    return SimpleNamespace(root_dir_name=root_dir, activated=activated, reserved=reserved, name=name)
+def _plugin_meta(
+    root_dir: str, *, activated: bool = True, reserved: bool = False, name: str = ""
+) -> SimpleNamespace:
+    return SimpleNamespace(
+        root_dir_name=root_dir, activated=activated, reserved=reserved, name=name
+    )
 
 
 @pytest.mark.parametrize(
     ("persona_skills", "expected"),
     [
-        (None, ["a", "b", "c"]),          # unset -> all
-        ([], []),                          # empty -> none
-        (["a"], ["a"]),                    # whitelist
-        (["a", "missing"], ["a"]),         # whitelist ignores unknown
+        (None, ["a", "b", "c"]),  # unset -> all
+        ([], []),  # empty -> none
+        (["a"], ["a"]),  # whitelist
+        (["a", "missing"], ["a"]),  # whitelist ignores unknown
     ],
 )
 def test_filter_by_persona(persona_skills, expected) -> None:
@@ -100,7 +110,9 @@ class _FakeSkillManager:
 
 
 class _FakeContext:
-    def __init__(self, *, prov_settings: dict, conversation_manager, persona_manager) -> None:
+    def __init__(
+        self, *, prov_settings: dict, conversation_manager, persona_manager
+    ) -> None:
         self._prov = prov_settings
         self.conversation_manager = conversation_manager
         self.persona_manager = persona_manager
@@ -148,7 +160,8 @@ async def test_resolve_glue_conversation_persona_id_passed() -> None:
     )
     plugin = _FakePlugin(ctx)
     result, persona = await resolve_active_skills(
-        plugin, "webchat:FriendMessage:webchat!astrbot!x",
+        plugin,
+        "webchat:FriendMessage:webchat!astrbot!x",
         skill_manager=_FakeSkillManager(skills),
         star_registry=[],
     )

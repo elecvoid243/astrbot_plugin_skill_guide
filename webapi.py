@@ -114,7 +114,9 @@ async def _handle_active(plugin: Any, *, umo: str | None = None) -> dict:
         return _error(f"resolve failed: {exc}")
 
 
-async def _handle_load(plugin: Any, *, umo: str | None = None, body: dict | None = None) -> dict:
+async def _handle_load(
+    plugin: Any, *, umo: str | None = None, body: dict | None = None
+) -> dict:
     if not umo:
         return _error("missing umo")
     body = body or {}
@@ -133,7 +135,9 @@ async def _handle_load(plugin: Any, *, umo: str | None = None, body: dict | None
     return _ok({"skill_name": skill_name, "queued": True})
 
 
-async def _handle_clear(plugin: Any, *, umo: str | None = None, body: dict | None = None) -> dict:
+async def _handle_clear(
+    plugin: Any, *, umo: str | None = None, body: dict | None = None
+) -> dict:
     if not umo:
         return _error("missing umo")
     cleared = plugin._state.clear(umo)
@@ -141,8 +145,18 @@ async def _handle_clear(plugin: Any, *, umo: str | None = None, body: dict | Non
 
 
 ROUTES: list[tuple[str, list[str], Callable, str]] = [
-    ("/skill-guide/active", ["GET"], _handle_active, "获取当前会话生效的 skill 列表(供前端渲染)"),
-    ("/skill-guide/load", ["POST"], _handle_load, "为当前会话排队一次性 skill 引导注入"),
+    (
+        "/skill-guide/active",
+        ["GET"],
+        _handle_active,
+        "获取当前会话生效的 skill 列表(供前端渲染)",
+    ),
+    (
+        "/skill-guide/load",
+        ["POST"],
+        _handle_load,
+        "为当前会话排队一次性 skill 引导注入",
+    ),
     ("/skill-guide/clear", ["POST"], _handle_clear, "清空当前会话未消费的引导队列"),
 ]
 

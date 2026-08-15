@@ -1,0 +1,7 @@
+name: astrbot_plugin_skill_guide
+display_name: skill_guide
+desc: 手动"加载"skill——前端点击后，向下一次 LLM 请求注入引导提示词，鼓励 LLM 使用该 skill（一次性，不改 persona/active 状态）。
+version: v1.0.0
+author: elecvoid243
+repo: https://github.com/elecvoid243/astrbot_plugin_skill_guide
+astrbot_version: ">=4.16,<5"

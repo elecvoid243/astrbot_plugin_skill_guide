@@ -14,7 +14,9 @@ class _FakeReq:
 
 
 def _skill(name: str) -> SimpleNamespace:
-    return SimpleNamespace(name=name, description=f"desc-{name}", path=f"C:/s/{name}/SKILL.md")
+    return SimpleNamespace(
+        name=name, description=f"desc-{name}", path=f"C:/s/{name}/SKILL.md"
+    )
 
 
 def test_inject_pending_drains_and_appends(monkeypatch) -> None:

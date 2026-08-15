@@ -56,7 +56,9 @@ def filter_plugin_skills(
         allowed_plugins = {str(name) for name in plugin_set}
 
     plugin_by_root_dir = {
-        meta.root_dir_name: meta for meta in star_registry if getattr(meta, "root_dir_name", None)
+        meta.root_dir_name: meta
+        for meta in star_registry
+        if getattr(meta, "root_dir_name", None)
     }
 
     filtered: list[Any] = []
