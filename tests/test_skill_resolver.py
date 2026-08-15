@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from core.skill_resolver import filter_by_persona, filter_plugin_skills
+from core.skill_resolver import filter_by_persona, filter_plugin_skills, resolve_active_skills
 
 
 def _skill(name: str, source_type: str = "local", plugin_name: str = "") -> SimpleNamespace:
@@ -68,3 +68,89 @@ def test_filter_plugin_skills_reserved_plugin_always_passes() -> None:
     registry = [_plugin_meta("builtin_a", reserved=True, name="builtin_a")]
     result = filter_plugin_skills(skills, ["some_other"], registry)
     assert [s.name for s in result] == ["p1"]
+
+
+class _FakeConversationManager:
+    def __init__(self, persona_id: str | None) -> None:
+        self._persona_id = persona_id
+
+    async def get_curr_conversation_id(self, umo: str) -> str | None:
+        return "conv-1" if umo else None
+
+    async def get_conversation(self, umo: str, conversation_id: str):
+        return SimpleNamespace(persona_id=self._persona_id)
+
+
+class _FakePersonaManager:
+    def __init__(self, persona: dict | None) -> None:
+        self._persona = persona
+
+    async def resolve_selected_persona(self, **kwargs):
+        return (None, self._persona, None, False)
+
+
+class _FakeSkillManager:
+    def __init__(self, skills: list) -> None:
+        self._skills = skills
+
+    def list_skills(self, *, active_only: bool, runtime: str) -> list:
+        assert active_only is True
+        assert runtime == "local"
+        return self._skills
+
+
+class _FakeContext:
+    def __init__(self, *, prov_settings: dict, conversation_manager, persona_manager) -> None:
+        self._prov = prov_settings
+        self.conversation_manager = conversation_manager
+        self.persona_manager = persona_manager
+
+    def get_config(self, umo: str = None) -> dict:
+        return {"provider_settings": self._prov}
+
+
+class _FakePlugin:
+    def __init__(self, context) -> None:
+        self.context = context
+
+
+@pytest.mark.asyncio
+async def test_resolve_glue_applies_all_filters() -> None:
+    skills = [
+        _skill("local-a", "local"),
+        _skill("plugin-b", "plugin", "plugin_b"),
+        _skill("local-c", "local"),
+    ]
+    registry = [_plugin_meta("plugin_b", name="plugin_b")]
+    ctx = _FakeContext(
+        prov_settings={"computer_use_runtime": "local", "plugin_set": ["*"]},
+        conversation_manager=_FakeConversationManager("p-default"),
+        persona_manager=_FakePersonaManager({"skills": ["local-a"]}),
+    )
+    plugin = _FakePlugin(ctx)
+    result, persona = await resolve_active_skills(
+        plugin,
+        "webchat:FriendMessage:webchat!astrbot!x",
+        skill_manager=_FakeSkillManager(skills),
+        star_registry=registry,
+    )
+    assert [s.name for s in result] == ["local-a"]
+    assert persona == {"skills": ["local-a"]}
+
+
+@pytest.mark.asyncio
+async def test_resolve_glue_conversation_persona_id_passed() -> None:
+    skills = [_skill("a", "local")]
+    ctx = _FakeContext(
+        prov_settings={},
+        conversation_manager=_FakeConversationManager("conv-persona"),
+        persona_manager=_FakePersonaManager({"skills": ["a"]}),
+    )
+    plugin = _FakePlugin(ctx)
+    result, persona = await resolve_active_skills(
+        plugin, "webchat:FriendMessage:webchat!astrbot!x",
+        skill_manager=_FakeSkillManager(skills),
+        star_registry=[],
+    )
+    # The glue must have resolved conversation persona -> persona whitelist applied
+    assert [s.name for s in result] == ["a"]
