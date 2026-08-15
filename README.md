@@ -1,11 +1,11 @@
-# astrbot_plugin_skill_guide
+# Skill Guide插件
 
-手动"加载"skill：前端列出当前会话生效的 skill，用户点击后，插件将一段引导提示词
+为Astrbot提供**手动加载**skill的功能：前端列出当前会话生效的 skill，用户点击后，插件将一段引导提示词
 注入到该会话**下一次** LLM 请求的 `extra_user_content_parts`，鼓励 LLM 使用该 skill。
 
 - 一次性语义：注入后自动清除（下下次请求不再生效）
 - 只注入引导，**不修改** persona、**不修改** skill 全局 active 状态
-- 独立 webapi，供 Dashboard 前端调用（`pluginExtensionApi`）
+- 独立 webapi，供 Dashboard 消费（`pluginExtensionApi`）
 
 ## 安装
 
