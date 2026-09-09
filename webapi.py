@@ -14,14 +14,15 @@ mirroring the spcode plugin's webapi pattern.
 from __future__ import annotations
 
 import inspect
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 try:  # imported as a package module (AstrBot plugin runtime)
     from .core.guide_state import GuideState
-    from .core.skill_resolver import resolve_active_skills
+    from .core.skill_resolver import resolve_active_skills, resolve_all_skills
 except ImportError:  # imported standalone as a top-level module (tests)
     from core.guide_state import GuideState
-    from core.skill_resolver import resolve_active_skills
+    from core.skill_resolver import resolve_active_skills, resolve_all_skills
 
 
 def build_active_payload(skills: list[Any], persona: Any | None) -> dict:
@@ -52,11 +53,14 @@ def build_active_payload(skills: list[Any], persona: Any | None) -> dict:
     }
 
 
-def validate_load_skill(active_skills: list[Any], skill_name: str) -> str | None:
-    """Validate a skill-load request against the session-active skills.
+def validate_load_skill(known_skills: list[Any], skill_name: str) -> str | None:
+    """Validate a skill-load request against the known skills.
 
     Args:
-        active_skills: Skills effective for the session.
+        known_skills: Every skill on disk (``resolve_all_skills``) — a
+            manual load may target skills that are NOT session-active
+            (not persona-mounted / deactivated), since the guidance
+            prompt only needs the SKILL.md path.
         skill_name: Requested skill name.
 
     Returns:
@@ -65,8 +69,8 @@ def validate_load_skill(active_skills: list[Any], skill_name: str) -> str | None
     name = (skill_name or "").strip()
     if not name:
         return "missing skill_name"
-    if not any(s.name == name for s in active_skills):
-        return f"skill not found or not active in this session: {name}"
+    if not any(s.name == name for s in known_skills):
+        return f"skill not found: {name}"
     return None
 
 
@@ -126,7 +130,9 @@ async def _handle_load(
     if not skill_name:
         return _error("missing skill_name")
     try:
-        skills, _ = await resolve_active_skills(plugin, umo)
+        # Validate against the FULL skill list: manual loads may target
+        # skills that are not session-active (persona-unmounted etc.).
+        skills = await resolve_all_skills(plugin, umo)
     except Exception as exc:  # noqa: BLE001
         return _error(f"resolve failed: {exc}")
     err = validate_load_skill(skills, skill_name)

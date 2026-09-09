@@ -8,7 +8,8 @@ Only the pure filters live here; the async glue lives in
 
 from __future__ import annotations
 
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 
 def filter_by_persona(skills: list[Any], persona_skills: Any) -> list[Any]:
@@ -75,6 +76,41 @@ def filter_plugin_skills(
         if plugin.name is not None and plugin.name in allowed_plugins:
             filtered.append(skill)
     return filtered
+
+
+async def resolve_all_skills(
+    plugin: Any,
+    umo: str,
+    *,
+    skill_manager: Any = None,
+) -> list[Any]:
+    """List every skill on disk for the session's runtime (no filters).
+
+    Manual loads may target skills that are NOT effective for the
+    session (not persona-mounted, globally deactivated, or from a
+    disabled plugin): a skill is just files, and the guidance prompt
+    only points the agent at the SKILL.md path. So unlike
+    :func:`resolve_active_skills` this applies no active/plugin/persona
+    filter — it backs the "load" validation and the injection lookup.
+
+    Args:
+        plugin: The Star instance (exposes ``context``).
+        umo: Unified message origin of the session (read for the
+            ``computer_use_runtime`` so sandbox paths stay correct).
+        skill_manager: Optional injected skill manager (defaults to
+            ``SkillManager()`` via lazy import).
+
+    Returns:
+        The full skill list (``SkillManager().list_skills(active_only=False)``).
+    """
+    if skill_manager is None:
+        from astrbot.core.skills.skill_manager import SkillManager
+
+        skill_manager = SkillManager()
+    cfg_obj = plugin.context.get_config(umo=umo)
+    prov_settings = cfg_obj.get("provider_settings", {}) or {}
+    runtime = prov_settings.get("computer_use_runtime", "local")
+    return skill_manager.list_skills(active_only=False, runtime=runtime)
 
 
 async def resolve_active_skills(

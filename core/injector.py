@@ -31,8 +31,8 @@ def inject_pending(
     """Drain the pending queue for ``umo`` and append guidance parts to ``req``.
 
     Pending names that cannot be resolved via ``skills_by_name`` (e.g. the
-    skill became inactive meanwhile) are silently dropped; the queue is
-    still drained (one-shot semantics).
+    skill was removed from disk meanwhile) are silently dropped; the queue
+    is still drained (one-shot semantics).
 
     Args:
         state: ``GuideState`` instance.
@@ -40,7 +40,8 @@ def inject_pending(
         req: ProviderRequest-like object exposing
             ``extra_user_content_parts`` list.
         skills_by_name: Map of skill name -> skill object (carries
-            description/path for the guidance text).
+            description/path for the guidance text). Built from the FULL
+            skill list so persona-unmounted manual loads also resolve.
 
     Returns:
         The list of skill names actually injected (empty when none).

@@ -16,7 +16,7 @@ from astrbot.api.event import filter
 from astrbot.api.provider import ProviderRequest
 from astrbot.api.star import register
 
-from .core import GuideState, inject_pending, resolve_active_skills
+from .core import GuideState, inject_pending, resolve_all_skills
 from .webapi import register_routes
 
 
@@ -48,6 +48,9 @@ class SkillGuidePlugin(star.Star):
     ) -> None:
         """一次性注入：drain 队列 → 把每个 skill 的引导追加到 req.extra_user_content_parts。
 
+        队列里的 skill 按"全量列表"解析（含未被人格挂载/停用的 skill —
+        手动加载只依赖 SKILL.md 文件路径，不要求会话生效）。
+
         Args:
             event: AstrBot 消息事件（取 unified_msg_origin）。
             req: 即将发送给 Provider 的请求对象，直接修改其字段。
@@ -56,7 +59,7 @@ class SkillGuidePlugin(star.Star):
             umo = event.unified_msg_origin
             if not self._state.peek(umo):
                 return
-            skills, _ = await resolve_active_skills(self, umo)
+            skills = await resolve_all_skills(self, umo)
             by_name = {skill.name: skill for skill in skills}
             inject_pending(self._state, umo, req, skills_by_name=by_name)
         except Exception as exc:  # noqa: BLE001 - never block the request

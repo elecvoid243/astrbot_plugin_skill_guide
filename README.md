@@ -1,11 +1,11 @@
-# Skill Guide插件
+# astrbot_plugin_skill_guide
 
-为Astrbot提供**手动加载**skill的功能：前端列出当前会话生效的 skill，用户点击后，插件将一段引导提示词
+手动"加载"skill：前端列出当前会话生效的 skill，用户点击后，插件将一段引导提示词
 注入到该会话**下一次** LLM 请求的 `extra_user_content_parts`，鼓励 LLM 使用该 skill。
 
 - 一次性语义：注入后自动清除（下下次请求不再生效）
 - 只注入引导，**不修改** persona、**不修改** skill 全局 active 状态
-- 独立 webapi，供 Dashboard 消费（`pluginExtensionApi`）
+- 独立 webapi，供 Dashboard 前端调用（`pluginExtensionApi`）
 
 ## 安装
 
@@ -16,7 +16,7 @@
 | 方法 | 路径 | 参数 | 说明 |
 |---|---|---|---|
 | GET | `/skill-guide/active` | query `umo` | 当前会话生效的 skill 列表（含 persona） |
-| POST | `/skill-guide/load` | body `{umo, skill_name}` | 排队一次性引导注入 |
+| POST | `/skill-guide/load` | body `{umo, skill_name}` | 排队一次性引导注入（`data/skills` 下任意存在的 skill 均可，不要求会话生效） |
 | POST | `/skill-guide/clear` | body `{umo}` | 清空未消费队列 |
 
 前端调用示例（axios，`pluginExtensionApi` 基址已配置好）：
@@ -45,8 +45,10 @@ await pluginExtensionApi.post('skill-guide/clear', { umo });
 
 ## 限制（v1）
 
-- 仅展示**当前会话生效**的 skill（全局 active + 人格白名单过滤结果）；
-  不含 workspace skills
+- `/skill-guide/active` 仅返回**当前会话生效**的 skill（全局 active + 人格白名单过滤结果）；
+  不含 workspace skills。前端"显示全部"模式请另行调用核心 `GET /skills`，
+  未被人格挂载的 skill 同样可以通过 `/skill-guide/load` 加载（校验与注入均按
+  `data/skills` 全量列表解析，引导提示词只依赖 SKILL.md 路径）
 - 队列仅存内存，重启即清空（一次性语义下可接受）
 
 ## 开发

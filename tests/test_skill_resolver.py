@@ -10,6 +10,7 @@ from core.skill_resolver import (
     filter_by_persona,
     filter_plugin_skills,
     resolve_active_skills,
+    resolve_all_skills,
 )
 
 
@@ -127,6 +128,18 @@ class _FakeSkillManager:
         return self._skills
 
 
+class _RecordingSkillManager:
+    """Fake accepting any list_skills() call (backs resolve_all_skills)."""
+
+    def __init__(self, skills: list) -> None:
+        self._skills = skills
+        self.calls: list[dict] = []
+
+    def list_skills(self, *, active_only: bool, runtime: str) -> list:
+        self.calls.append({"active_only": active_only, "runtime": runtime})
+        return self._skills
+
+
 class _FakeContext:
     def __init__(
         self, *, prov_settings: dict, conversation_manager, persona_manager
@@ -142,6 +155,30 @@ class _FakeContext:
 class _FakePlugin:
     def __init__(self, context) -> None:
         self.context = context
+
+
+@pytest.mark.asyncio
+async def test_resolve_all_skills_applies_no_filters() -> None:
+    """Manual loads bypass every filter: full list, active_only=False."""
+    skills = [
+        _skill("local-a", "local"),
+        _skill("plugin-b", "plugin", "disabled_plugin"),
+    ]
+    mgr = _RecordingSkillManager(skills)
+    # A persona whitelist that would drop everything if applied.
+    ctx = _FakeContext(
+        prov_settings={"computer_use_runtime": "local", "plugin_set": ["other"]},
+        conversation_manager=_FakeConversationManager("p-default"),
+        persona_manager=_FakePersonaManager({"skills": ["local-a"]}),
+    )
+    plugin = _FakePlugin(ctx)
+    result = await resolve_all_skills(
+        plugin,
+        "webchat:FriendMessage:webchat!astrbot!x",
+        skill_manager=mgr,
+    )
+    assert result == skills
+    assert mgr.calls == [{"active_only": False, "runtime": "local"}]
 
 
 @pytest.mark.asyncio
